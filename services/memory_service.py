@@ -1,94 +1,94 @@
-from memory.database import Database
+from memory.memory import Memory
 
 
-class Memory:
+class MemoryService:
 
     """
-    Core Memory Layer.
+    Business layer for Memory.
 
-    All memory operations pass through this class.
+    Agents should communicate with this class
+    instead of accessing Memory directly.
     """
 
     def __init__(self):
 
-        self.db = Database()
+        self.memory = Memory()
 
     # =====================================================
-    # Memory Operations
+    # Memory CRUD
     # =====================================================
 
     def remember(self, key, value, category="general"):
 
-        self.db.save_memory(
+        self.memory.remember(
             key=key,
             value=value,
             category=category
         )
+
+        return f"I'll remember your {key.replace('_', ' ')}."
 
     def recall(self, key):
 
-        memory = self.db.get_memory(key)
-
-        if memory:
-            return memory["memory_value"]
-
-        return None
+        return self.memory.recall(key)
 
     def update(self, key, value, category="general"):
 
-        self.db.save_memory(
+        self.memory.update(
             key=key,
             value=value,
             category=category
         )
 
+        return f"I've updated your {key.replace('_', ' ')}."
+
     def forget(self, key):
 
-        self.db.delete_memory(key)
+        self.memory.forget(key)
+
+        return f"I've forgotten your {key.replace('_', ' ')}."
 
     # =====================================================
-    # Memory Search
+    # Search
     # =====================================================
 
     def search(self, keyword):
 
-        return self.db.search_memory(keyword)
+        return self.memory.search(keyword)
 
     def list_all(self):
 
-        return self.db.list_memories()
+        return self.memory.list_all()
 
     def count(self):
 
-        return self.db.memory_count()
+        return self.memory.count()
 
     # =====================================================
-    # Conversation History
+    # Chat History
     # =====================================================
 
     def save_chat(self, user_message, assistant_message):
 
-        self.db.save_chat(
+        self.memory.save_chat(
             user_message,
             assistant_message
         )
 
     def recent_chat(self, limit=10):
 
-        return self.db.recent_chat(limit)
+        return self.memory.recent_chat(limit)
 
     # =====================================================
-    # Utility
+    # Utilities
     # =====================================================
 
     def clear_memory(self):
 
-        memories = self.list_all()
+        self.memory.clear_memory()
 
-        for memory in memories:
-
-            self.forget(memory["memory_key"])
+        return "All memories have been cleared."
 
     def has_memory(self, key):
 
-        return self.recall(key) is not None
+        return self.memory.has_memory(key)
