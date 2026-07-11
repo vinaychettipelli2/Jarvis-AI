@@ -1,5 +1,4 @@
-from duckduckgo_search import DDGS
-
+from ddgs import DDGS
 
 class DuckDuckGoProvider:
 
@@ -11,7 +10,7 @@ class DuckDuckGoProvider:
         General web search
         """
 
-        try:
+        try:    
 
             results = list(
                 self.ddgs.text(
