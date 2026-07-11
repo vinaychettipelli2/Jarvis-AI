@@ -21,7 +21,8 @@ speech_to_text:
 
 text_to_speech:
   engine: piper
-  voice: en_US-lessac-medium
+  piper_path: "C:/AI/piper/piper.exe"
+  voice_path: "C:/AI/piper/voices/en_US-lessac-medium.onnx"
 
 research:
   provider: ddgs
