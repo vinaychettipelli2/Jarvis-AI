@@ -1,0 +1,37 @@
+2026-07-12 13:26:01 | WARNING  | jarvis.voice | webrtcvad package not installed.
+2026-07-12 13:26:01 | WARNING  | jarvis.voice | Wake model not found : models\wakeword\jarvis.onnx
+2026-07-12 13:29:52 | WARNING  | jarvis.voice | Wake model not found : models\wakeword\jarvis.onnx
+2026-07-12 13:38:31 | WARNING  | jarvis.voice | Wake model not found : models\wakeword\jarvis.onnx
+2026-07-12 13:38:31 | INFO     | jarvis.voice | Loading Faster-Whisper model...
+2026-07-12 13:38:32 | INFO     | jarvis.voice | Whisper model loaded successfully.
+2026-07-12 13:38:32 | INFO     | jarvis.voice | Starting Voice Manager.
+2026-07-12 13:38:32 | INFO     | jarvis.voice | Initializing Voice Assistant.
+2026-07-12 13:38:32 | INFO     | jarvis.voice | Initializing Audio Pipeline...
+2026-07-12 13:38:32 | INFO     | jarvis.voice | Calibrating microphone...
+2026-07-12 13:38:35 | INFO     | jarvis.voice | Calibration completed.
+2026-07-12 13:38:35 | INFO     | jarvis.voice | EVENT : SYSTEM_STARTED
+2026-07-12 13:38:35 | INFO     | jarvis.voice | EVENT : SYSTEM_STARTED
+2026-07-12 13:38:35 | INFO     | jarvis.voice | RecordingWorker started.
+2026-07-12 13:38:35 | INFO     | jarvis.voice | TranscriptionWorker started.
+2026-07-12 13:38:35 | INFO     | jarvis.voice | AIWorker started.
+2026-07-12 13:38:35 | INFO     | jarvis.voice | SpeechWorker started.
+2026-07-12 13:38:35 | INFO     | jarvis.voice | PlaybackWorker started.
+2026-07-12 13:38:37 | INFO     | jarvis.voice | TTS completed (25 chars).
+2026-07-12 13:38:37 | INFO     | jarvis.voice | Playing : jarvis_output.wav
+2026-07-12 13:46:56 | WARNING  | jarvis.voice | Wake model not found : models\wakeword\jarvis.onnx
+2026-07-12 13:46:56 | INFO     | jarvis.voice | Loading Faster-Whisper model...
+2026-07-12 13:46:57 | INFO     | jarvis.voice | Whisper model loaded successfully.
+2026-07-12 13:46:57 | INFO     | jarvis.voice | Starting Voice Manager.
+2026-07-12 13:46:57 | INFO     | jarvis.voice | Initializing Voice Assistant.
+2026-07-12 13:46:57 | INFO     | jarvis.voice | Initializing Audio Pipeline...
+2026-07-12 13:46:57 | INFO     | jarvis.voice | Calibrating microphone...
+2026-07-12 13:46:59 | INFO     | jarvis.voice | Calibration completed.
+2026-07-12 13:46:59 | INFO     | jarvis.voice | EVENT : SYSTEM_STARTED
+2026-07-12 13:46:59 | INFO     | jarvis.voice | EVENT : SYSTEM_STARTED
+2026-07-12 13:46:59 | INFO     | jarvis.voice | RecordingWorker started.
+2026-07-12 13:46:59 | INFO     | jarvis.voice | TranscriptionWorker started.
+2026-07-12 13:46:59 | INFO     | jarvis.voice | AIWorker started.
+2026-07-12 13:46:59 | INFO     | jarvis.voice | SpeechWorker started.
+2026-07-12 13:46:59 | INFO     | jarvis.voice | PlaybackWorker started.
+2026-07-12 13:47:00 | INFO     | jarvis.voice | TTS completed (25 chars).
+2026-07-12 13:47:00 | INFO     | jarvis.voice | Playing : jarvis_output.wav

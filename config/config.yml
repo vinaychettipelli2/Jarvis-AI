@@ -16,13 +16,17 @@ voice:
   channels: 1
 
 speech_to_text:
-  model: base
-  language: en
+  model: "models/whisper"
+  device: "cpu"
+  compute_type: "int8"
+  language: "en"
+  beam_size: 5
 
 text_to_speech:
   engine: piper
   piper_path: "C:/AI/piper/piper.exe"
-  voice_path: "C:/AI/piper/voices/en_US-lessac-medium.onnx"
+  voice: "C:/AI/piper/voices/en_US-lessac-medium.onnx"
+  output: "jarvis_output.wav"
 
 research:
   provider: ddgs

@@ -2,18 +2,16 @@
 voice/voice_manager.py
 
 Enterprise Voice Manager
-
-This is the orchestration layer of the Voice Module.
 """
 
 from __future__ import annotations
 
 from engine.conversation_engine import ConversationEngine
 
+from voice.metrics import MetricsCollector
+from voice.voice_assistant import VoiceAssistant
 from voice.voice_logger import VoiceLogger
 from voice.voice_state import VoiceState
-from voice.voice_assistant import VoiceAssistant
-from voice.metrics import MetricsCollector
 from voice.worker import (
     RecordingWorker,
     TranscriptionWorker,
@@ -29,20 +27,21 @@ class VoiceManager:
 
     Responsibilities
     ----------------
-    ✔ Start Voice System
-    ✔ Manage Workers
-    ✔ AI Conversation
-    ✔ Voice Assistant
+    ✔ Voice orchestration
+    ✔ AI interaction
+    ✔ Worker lifecycle
     ✔ Metrics
-    ✔ Graceful Shutdown
-
-    Does NOT
-
-    ✘ Record Audio
-    ✘ Detect Wake Word
-    ✘ Run Whisper
-    ✘ Play Audio
+    ✔ Graceful shutdown
     """
+
+    EXIT_COMMANDS = {
+        "exit",
+        "quit",
+        "bye",
+        "goodbye",
+        "shutdown",
+        "stop",
+    }
 
     def __init__(
 
@@ -76,13 +75,13 @@ class VoiceManager:
 
         self.play_worker = PlaybackWorker()
 
-    # ---------------------------------------------------------
+    # -----------------------------------------------------
 
     def start(self):
 
         self.logger.info(
 
-            "Voice Manager Starting."
+            "Starting Voice Manager."
 
         )
 
@@ -94,9 +93,7 @@ class VoiceManager:
 
         self.assistant.speak(
 
-            synthesizer=self.engine.manager.voice.tts,
-
-            text="Hello Vinay. I am Jarvis."
+            "Hello Vinay. I am Jarvis."
 
         )
 
@@ -104,23 +101,23 @@ class VoiceManager:
 
             self._conversation_cycle()
 
-    # ---------------------------------------------------------
+    # -----------------------------------------------------
 
     def stop(self):
 
+        self.running = False
+
         self.logger.info(
 
-            "Voice Manager Stopping."
+            "Stopping Voice Manager."
 
         )
-
-        self.running = False
 
         self._stop_workers()
 
         self.assistant.shutdown()
 
-    # ---------------------------------------------------------
+    # -----------------------------------------------------
 
     def _conversation_cycle(self):
 
@@ -140,13 +137,11 @@ class VoiceManager:
 
             print(f"\n👤 You : {question}")
 
-            if self._exit_requested(question):
+            if self._should_exit(question):
 
                 self.assistant.speak(
 
-                    synthesizer=self.engine.manager.voice.tts,
-
-                    text="Goodbye Vinay."
+                    "Goodbye Vinay."
 
                 )
 
@@ -162,7 +157,7 @@ class VoiceManager:
 
             with self.metrics.timer(
 
-                "ai"
+                "conversation"
 
             ):
 
@@ -176,9 +171,13 @@ class VoiceManager:
 
             self.assistant.speak(
 
-                synthesizer=self.engine.manager.voice.tts,
+                answer
 
-                text=answer,
+            )
+
+            self.assistant.state.transition(
+
+                VoiceState.IDLE
 
             )
 
@@ -188,7 +187,11 @@ class VoiceManager:
 
         except Exception as exc:
 
-            self.logger.exception(exc)
+            self.logger.exception(
+
+                exc
+
+            )
 
             self.metrics.increment(
 
@@ -200,9 +203,7 @@ class VoiceManager:
 
                 self.assistant.speak(
 
-                    synthesizer=self.engine.manager.voice.tts,
-
-                    text="Sorry, something went wrong."
+                    "Sorry, something went wrong."
 
                 )
 
@@ -210,7 +211,7 @@ class VoiceManager:
 
                 pass
 
-    # ---------------------------------------------------------
+    # -----------------------------------------------------
 
     def _start_workers(self):
 
@@ -224,7 +225,7 @@ class VoiceManager:
 
         self.play_worker.start()
 
-    # ---------------------------------------------------------
+    # -----------------------------------------------------
 
     def _stop_workers(self):
 
@@ -238,39 +239,29 @@ class VoiceManager:
 
         self.play_worker.stop()
 
-    # ---------------------------------------------------------
+    # -----------------------------------------------------
 
-    @staticmethod
+    @classmethod
 
-    def _exit_requested(text: str):
+    def _should_exit(
 
-        return text.lower() in {
+        cls,
 
-            "exit",
+        text: str,
 
-            "quit",
+    ) -> bool:
 
-            "bye",
+        return text.lower() in cls.EXIT_COMMANDS
 
-            "goodbye",
-
-            "shutdown",
-
-            "stop",
-
-        }
-
-    # ---------------------------------------------------------
+    # -----------------------------------------------------
 
     @property
 
-    def healthy(self):
+    def health(self):
 
         return {
 
             "running": self.running,
-
-            "metrics": self.metrics.snapshot(),
 
             "workers": {
 
@@ -285,5 +276,7 @@ class VoiceManager:
                 "play": self.play_worker.thread.is_alive(),
 
             },
+
+            "metrics": self.metrics.snapshot(),
 
         }

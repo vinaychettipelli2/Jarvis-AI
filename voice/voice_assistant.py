@@ -2,8 +2,6 @@
 voice/voice_assistant.py
 
 Enterprise Voice Assistant
-
-Coordinates the complete voice pipeline.
 """
 
 from __future__ import annotations
@@ -15,6 +13,7 @@ from voice.events import (
     VoiceEvent,
     VoiceEventType,
 )
+from voice.interfaces import SpeechSynthesizer
 from voice.metrics import MetricsCollector
 from voice.session import ConversationSession
 from voice.voice_logger import VoiceLogger
@@ -28,23 +27,8 @@ class VoiceAssistant:
     """
     Enterprise Voice Assistant.
 
-    Responsibilities
-    ----------------
-    ✔ Own Audio Pipeline
-    ✔ Session Management
-    ✔ Metrics
-    ✔ Event Publishing
-    ✔ Playback
-    ✔ Barge-In
-    ✔ Voice State
-
-    Does NOT
-
-    ✘ Call AI directly
-
-    ✘ Handle UI
-
-    ✘ Execute Desktop Actions
+    Coordinates the complete
+    voice subsystem.
     """
 
     def __init__(
@@ -52,6 +36,8 @@ class VoiceAssistant:
         self,
 
         pipeline: AudioPipeline,
+
+        synthesizer: SpeechSynthesizer,
 
         player: AudioPlayer,
 
@@ -64,6 +50,8 @@ class VoiceAssistant:
         self.logger = VoiceLogger.get_logger()
 
         self.pipeline = pipeline
+
+        self.synthesizer = synthesizer
 
         self.player = player
 
@@ -83,7 +71,7 @@ class VoiceAssistant:
 
         )
 
-    # ---------------------------------------------------------
+    # --------------------------------------------------
 
     def initialize(self):
 
@@ -109,7 +97,7 @@ class VoiceAssistant:
 
         )
 
-    # ---------------------------------------------------------
+    # --------------------------------------------------
 
     def listen(self):
 
@@ -129,13 +117,11 @@ class VoiceAssistant:
 
         return text
 
-    # ---------------------------------------------------------
+    # --------------------------------------------------
 
     def speak(
 
         self,
-
-        synthesizer,
 
         text: str,
 
@@ -157,7 +143,7 @@ class VoiceAssistant:
 
         ):
 
-            audio = synthesizer.synthesize(
+            audio = self.synthesizer.synthesize(
 
                 text
 
@@ -181,21 +167,15 @@ class VoiceAssistant:
 
         )
 
-    # ---------------------------------------------------------
+    # --------------------------------------------------
 
     def interrupt(self):
 
         return self.barge.interrupt()
 
-    # ---------------------------------------------------------
+    # --------------------------------------------------
 
     def shutdown(self):
-
-        self.logger.info(
-
-            "Voice Assistant Shutdown."
-
-        )
 
         self.pipeline.shutdown()
 
@@ -213,7 +193,7 @@ class VoiceAssistant:
 
         )
 
-    # ---------------------------------------------------------
+    # --------------------------------------------------
 
     def publish(
 
@@ -235,32 +215,10 @@ class VoiceAssistant:
 
         )
 
-    # ---------------------------------------------------------
+    # --------------------------------------------------
 
     @property
 
     def current_state(self):
 
         return self.state.current
-
-    # ---------------------------------------------------------
-
-    @property
-
-    def active_session(self):
-
-        return self.session.active
-
-    # ---------------------------------------------------------
-
-    def health(self):
-
-        return {
-
-            "state": self.state.current.name,
-
-            "session": self.session.active,
-
-            "metrics": self.metrics.snapshot(),
-
-        }
