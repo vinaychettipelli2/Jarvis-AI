@@ -1,3 +1,5 @@
+# CHANGED: Replaced simpleaudio with sounddevice + soundfile for stable playback on Python 3.14.
+
 """
 voice/audio_player.py
 
@@ -7,10 +9,12 @@ Production Audio Player
 from __future__ import annotations
 
 from pathlib import Path
-from threading import Lock
+from threading import Lock, Thread
 from typing import Optional
 
-import simpleaudio as sa
+import numpy as np
+import sounddevice as sd
+import soundfile as sf
 
 from voice.interfaces import AudioOutput
 from voice.exceptions import (
@@ -22,15 +26,17 @@ from voice.voice_logger import VoiceLogger
 
 class AudioPlayer(AudioOutput):
     """
-    Enterprise Audio Player.
+    Enterprise Audio Player
 
     Features
     --------
     ✔ Thread Safe
-    ✔ Blocking / Non-blocking playback
-    ✔ Stop playback
-    ✔ Playback status
-    ✔ Production Logging
+    ✔ Blocking Playback
+    ✔ Non Blocking Playback
+    ✔ Stop Playback
+    ✔ Playback State
+    ✔ Future Barge-In Ready
+    ✔ Python 3.14 Compatible
     """
 
     def __init__(self):
@@ -39,7 +45,11 @@ class AudioPlayer(AudioOutput):
 
         self._lock = Lock()
 
-        self._play_object: Optional[sa.PlayObject] = None
+        self._playing = False
+
+        self._thread: Optional[Thread] = None
+
+        self._stream = None
 
     # ---------------------------------------------------------
 
@@ -49,43 +59,61 @@ class AudioPlayer(AudioOutput):
         blocking: bool = True,
     ) -> None:
 
+        if not audio.exists():
+
+            raise AudioFileError(
+                f"Audio file not found: {audio}"
+            )
+
+        if blocking:
+
+            self._play(audio)
+
+        else:
+
+            self._thread = Thread(
+                target=self._play,
+                args=(audio,),
+                daemon=True,
+                name="AudioPlayer",
+            )
+
+            self._thread.start()
+
+    # ---------------------------------------------------------
+
+    def _play(self, audio: Path):
+
         with self._lock:
 
             try:
 
-                if not audio.exists():
+                self._playing = True
 
-                    raise AudioFileError(
-
-                        f"File not found : {audio}"
-
-                    )
-
-                wave = sa.WaveObject.from_wave_file(
-
-                    str(audio)
-
+                data, samplerate = sf.read(
+                    str(audio),
+                    dtype="float32",
                 )
-
-                self._play_object = wave.play()
 
                 self.logger.info(
-
                     f"Playing : {audio.name}"
-
                 )
 
-                if blocking:
+                sd.play(data, samplerate)
 
-                    self._play_object.wait_done()
+                sd.wait()
 
             except Exception as exc:
 
+                self.logger.exception(exc)
+
                 raise AudioPlaybackError(
-
                     str(exc)
-
                 ) from exc
+
+            finally:
+
+                self._playing = False
 
     # ---------------------------------------------------------
 
@@ -93,34 +121,29 @@ class AudioPlayer(AudioOutput):
 
         with self._lock:
 
-            if self._play_object:
+            try:
 
-                self._play_object.stop()
+                sd.stop()
+
+            finally:
+
+                self._playing = False
 
                 self.logger.info(
-
                     "Playback stopped."
-
                 )
-
-    # ---------------------------------------------------------
-
-    @property
-    def is_playing(self) -> bool:
-
-        with self._lock:
-
-            if self._play_object is None:
-                return False
-
-            return self._play_object.is_playing()
 
     # ---------------------------------------------------------
 
     def wait(self):
 
-        with self._lock:
+        if self._thread:
 
-            if self._play_object:
+            self._thread.join()
 
-                self._play_object.wait_done()
+    # ---------------------------------------------------------
+
+    @property
+    def is_playing(self):
+
+        return self._playing
