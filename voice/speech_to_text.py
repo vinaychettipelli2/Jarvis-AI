@@ -1,59 +1,172 @@
 """
 voice/speech_to_text.py
 
-Production Speech-to-Text using Faster Whisper.
-
-Responsibilities:
-- Load Whisper model once
-- Convert WAV -> Text
-- Return recognized text
-- Never call AI directly
+Production Speech-to-Text using Faster-Whisper.
 """
 
-import logging
+from __future__ import annotations
+
 from pathlib import Path
+from typing import Final
+
 from faster_whisper import WhisperModel
 
-logger = logging.getLogger("jarvis.voice")
+from voice.interfaces import SpeechRecognizer
+from voice.exceptions import (
+    SpeechRecognitionError,
+    AudioFileError,
+)
+from voice.voice_logger import VoiceLogger
 
 
-class SpeechToText:
+class SpeechToText(SpeechRecognizer):
+    """
+    Enterprise Speech Recognition.
+
+    Features
+    --------
+    ✔ Offline
+    ✔ Faster-Whisper
+    ✔ Production Logging
+    ✔ Lazy Model Loading
+    ✔ Singleton Model
+    ✔ Thread Safe (Read)
+    ✔ Input Validation
+    ✔ Language Selection
+    ✔ Beam Search
+    """
+
+    _model = None
 
     def __init__(
         self,
-        model_size="base",
-        device="cpu",
-        compute_type="int8",
+        model_path: str,
+        device: str = "cpu",
+        compute_type: str = "int8",
+        language: str = "en",
+        beam_size: int = 5,
     ):
-        logger.info("Loading Faster Whisper model...")
 
-        self.model = WhisperModel(
-            model_size,
-            device=device,
-            compute_type=compute_type,
+        self.logger = VoiceLogger.get_logger()
+
+        self.model_path = Path(model_path)
+
+        self.device = device
+
+        self.compute_type = compute_type
+
+        self.language = language
+
+        self.beam_size = beam_size
+
+        self._load_model()
+
+    # ---------------------------------------------------------
+
+    def _load_model(self):
+
+        if SpeechToText._model is not None:
+            return
+
+        if not self.model_path.exists():
+
+            raise SpeechRecognitionError(
+
+                f"Whisper model not found: {self.model_path}"
+
+            )
+
+        self.logger.info(
+
+            "Loading Faster-Whisper model..."
+
         )
 
-        logger.info("Whisper loaded successfully.")
+        SpeechToText._model = WhisperModel(
 
-    def transcribe(self, audio_file: str) -> str:
+            str(self.model_path),
 
-        audio_path = Path(audio_file)
+            device=self.device,
 
-        if not audio_path.exists():
-            raise FileNotFoundError(audio_file)
+            compute_type=self.compute_type,
 
-        segments, info = self.model.transcribe(
-            str(audio_path),
-            beam_size=5,
         )
 
-        text = ""
+        self.logger.info(
 
-        for segment in segments:
-            text += segment.text + " "
+            "Whisper model loaded successfully."
 
-        text = text.strip()
+        )
 
-        logger.info(f"Recognized: {text}")
+    # ---------------------------------------------------------
 
-        return text
+    @property
+    def model(self):
+
+        return SpeechToText._model
+
+    # ---------------------------------------------------------
+
+    def transcribe(
+        self,
+        audio: Path,
+    ) -> str:
+
+        if not audio.exists():
+
+            raise AudioFileError(
+
+                f"Audio file not found: {audio}"
+
+            )
+
+        try:
+
+            segments, info = self.model.transcribe(
+
+                str(audio),
+
+                beam_size=self.beam_size,
+
+                language=self.language,
+
+                vad_filter=True,
+
+            )
+
+            text = " ".join(
+
+                segment.text.strip()
+
+                for segment in segments
+
+            ).strip()
+
+            self.logger.info(
+
+                f"Detected Language : {info.language}"
+
+            )
+
+            self.logger.info(
+
+                f"Recognition : {text}"
+
+            )
+
+            return text
+
+        except Exception as exc:
+
+            raise SpeechRecognitionError(
+
+                str(exc)
+
+            ) from exc
+
+    # ---------------------------------------------------------
+
+    @property
+    def current_model(self) -> Final[str]:
+
+        return str(self.model_path)

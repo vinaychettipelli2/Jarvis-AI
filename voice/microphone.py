@@ -1,95 +1,194 @@
 """
 voice/microphone.py
 
-Production Microphone Manager
-
-Responsibilities:
-- Detect microphone
-- Record audio
-- Save WAV files
-- Return numpy audio arrays
-
-This module NEVER performs:
-- Speech Recognition
-- AI Calls
-- Wake Word Detection
-- Text To Speech
+Production Microphone Manager.
 """
 
-import logging
+from __future__ import annotations
+
+from pathlib import Path
+from typing import Optional
+
+import numpy as np
 import sounddevice as sd
 import soundfile as sf
-import numpy as np
-from pathlib import Path
 
-logger = logging.getLogger("jarvis.voice")
+from voice.interfaces import Recorder
+from voice.exceptions import (
+    MicrophoneError,
+    RecordingError,
+)
+from voice.voice_logger import VoiceLogger
 
 
-class MicrophoneManager:
+class MicrophoneManager(Recorder):
     """
-    Handles microphone recording.
+    Enterprise-grade microphone recorder.
+
+    Features
+    --------
+    ✔ Device validation
+    ✔ Automatic WAV saving
+    ✔ Configurable sample rate
+    ✔ Mono / Stereo support
+    ✔ Exception handling
+    ✔ Logging
     """
 
     def __init__(
         self,
-        device=None,
-        sample_rate=16000,
-        channels=1,
+        sample_rate: int,
+        channels: int,
+        device: Optional[int] = None,
+        output_file: str = "recording.wav",
     ):
-        self.device = device
+
+        self.logger = VoiceLogger.get_logger()
+
         self.sample_rate = sample_rate
+
         self.channels = channels
 
+        self.device = device
+
+        self.output_file = Path(output_file)
+
+        self._recording = None
+
+        self.validate_device()
+
+    # ---------------------------------------------------------
+
+    def validate_device(self):
+
+        try:
+
+            devices = sd.query_devices()
+
+            if self.device is None:
+                return
+
+            if self.device >= len(devices):
+
+                raise MicrophoneError(
+
+                    f"Invalid microphone index: {self.device}"
+
+                )
+
+        except Exception as exc:
+
+            raise MicrophoneError(str(exc)) from exc
+
+    # ---------------------------------------------------------
+
     def list_devices(self):
-        """Print all available audio devices."""
-        devices = sd.query_devices()
 
-        print("\nAvailable Audio Devices\n")
-        print(devices)
+        return sd.query_devices()
 
-        return devices
+    # ---------------------------------------------------------
 
-    def record(self, seconds=5):
-        """
-        Record audio.
-
-        Returns:
-            numpy.ndarray
-        """
-
-        logger.info("Recording started")
-
-        audio = sd.rec(
-            int(seconds * self.sample_rate),
-            samplerate=self.sample_rate,
-            channels=self.channels,
-            dtype="float32",
-            device=self.device,
-        )
-
-        sd.wait()
-
-        logger.info("Recording finished")
-
-        return audio
-
-    def save(
+    def start(
         self,
-        audio: np.ndarray,
-        filename="recording.wav",
-    ):
-        """
-        Save audio to WAV.
-        """
+        duration: float = 5.0,
+    ) -> None:
 
-        path = Path(filename)
+        try:
 
-        sf.write(
-            path,
-            audio,
-            self.sample_rate,
-        )
+            frames = int(
 
-        logger.info(f"Saved recording to {path}")
+                duration *
 
-        return path
+                self.sample_rate
+
+            )
+
+            self.logger.info(
+
+                "Recording started."
+
+            )
+
+            self._recording = sd.rec(
+
+                frames,
+
+                samplerate=self.sample_rate,
+
+                channels=self.channels,
+
+                dtype=np.float32,
+
+                device=self.device,
+
+            )
+
+        except Exception as exc:
+
+            raise RecordingError(
+
+                str(exc)
+
+            ) from exc
+
+    # ---------------------------------------------------------
+
+    def stop(self) -> Path:
+
+        try:
+
+            sd.wait()
+
+            sf.write(
+
+                self.output_file,
+
+                self._recording,
+
+                self.sample_rate,
+
+            )
+
+            self.logger.info(
+
+                f"Recording saved : {self.output_file}"
+
+            )
+
+            return self.output_file
+
+        except Exception as exc:
+
+            raise RecordingError(
+
+                str(exc)
+
+            ) from exc
+
+    # ---------------------------------------------------------
+
+    def record(
+
+        self,
+
+        duration: float = 5.0,
+
+    ) -> Path:
+
+        self.start(duration)
+
+        return self.stop()
+
+    # ---------------------------------------------------------
+
+    @property
+
+    def sample_rate_hz(self):
+
+        return self.sample_rate
+
+    @property
+
+    def output_path(self):
+
+        return self.output_file

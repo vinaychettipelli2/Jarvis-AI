@@ -1,76 +1,137 @@
-from engine.planner import Planner
+"""
+engine/conversation_engine.py
+
+Production Conversation Engine
+"""
+
+from __future__ import annotations
+
+from typing import Optional
+
 from engine.agent_manager import AgentManager
+from engine.planner import Planner
 
 
 class ConversationEngine:
+    """
+    Enterprise Conversation Engine.
 
-    def __init__(self):
-        """
-        Conversation Engine
+    Responsibilities
+    ----------------
+    ✔ Validate input
+    ✔ Select agent
+    ✔ Execute request
+    ✔ Return response
 
-        Main controller of Jarvis.
-        """
+    This class NEVER:
+    - Talks to microphone
+    - Performs TTS
+    - Performs STT
+    - Handles UI
+    """
 
-        self.planner = Planner()
-        self.manager = AgentManager()
+    def __init__(
+        self,
+        planner: Optional[Planner] = None,
+        manager: Optional[AgentManager] = None,
+    ):
 
-    def process(self, question):
+        self.planner = planner or Planner()
+
+        self.manager = manager or AgentManager()
+
+    # ---------------------------------------------------------
+
+    def ask(
+        self,
+        question: str,
+    ) -> str:
+
+        question = self._normalize(question)
+
+        agent = self.planner.plan(question)
+
+        return self.manager.execute(
+
+            agent,
+
+            question,
+
+        )
+
+    # ---------------------------------------------------------
+
+    def chat(
+        self,
+        question: str,
+    ) -> str:
+
+        return self.ask(question)
+
+    # ---------------------------------------------------------
+
+    def process(
+        self,
+        question: str,
+    ) -> str:
+
+        return self.ask(question)
+
+    # ---------------------------------------------------------
+
+    @staticmethod
+    def _normalize(
+        question: str,
+    ) -> str:
 
         if question is None:
-            return "Please enter a question."
+
+            raise ValueError(
+
+                "Question cannot be None."
+
+            )
 
         question = question.strip()
 
-        if len(question) == 0:
-            return "Please enter a question."
+        if not question:
 
-        # Ask planner which agent should handle it
-        selected_agent = self.planner.plan(question)
+            raise ValueError(
 
-        # Execute selected agent
-        answer = self.manager.execute(
-            selected_agent,
-            question
+                "Question cannot be empty."
+
+            )
+
+        return question
+
+    # ---------------------------------------------------------
+
+    def health(self) -> dict:
+
+        return {
+
+            "planner": self.planner.__class__.__name__,
+
+            "agent_manager": self.manager.__class__.__name__,
+
+            "status": "healthy",
+
+        }
+
+    # ---------------------------------------------------------
+
+    def __repr__(self):
+
+        return (
+
+            f"{self.__class__.__name__}"
+
+            "("
+
+            f"planner={self.planner.__class__.__name__}, "
+
+            f"manager={self.manager.__class__.__name__}"
+
+            ")"
+
         )
-
-        return answer
-
-    def chat(self, question):
-
-        return self.process(question)
-
-    def ask(self, question):
-
-        return self.process(question)
-
-    def run(self):
-
-        print("=" * 40)
-        print("          JARVIS AI")
-        print("=" * 40)
-
-        print()
-        print("Hello Vinay!")
-        print("I'm online.")
-        print("Type 'exit' to quit.")
-        print()
-
-        while True:
-
-            question = input("You : ")
-
-            if question.lower() in [
-                "exit",
-                "quit"
-            ]:
-
-                print("\nJarvis : Goodbye Vinay! 👋")
-                break
-
-            answer = self.process(question)
-
-            print()
-
-            print("Jarvis :", answer)
-
-            print()
